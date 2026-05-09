@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>권유진 드릴 검수 퀴즈</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:#f5f5f7;color:#1a1a1a;line-height:1.5}
+.hide{display:none!important}
+.wrap{max-width:720px;margin:0 auto;padding:16px 14px 80px}
+.head{background:#1a1a1a;color:#fff;padding:18px 16px;border-radius:14px;margin-bottom:14px}
+.head h1{margin:0 0 4px;font-size:18px;font-weight:700}
+.head p{margin:0;font-size:13px;opacity:.85}
+.progress{position:sticky;top:0;background:rgba(245,245,247,.95);backdrop-filter:blur(8px);padding:10px 0;margin:-16px -14px 12px;border-bottom:1px solid #e5e5ea;z-index:10}
+.progress-inner{max-width:720px;margin:0 auto;padding:0 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#666}
+.progress-bar{height:4px;background:#e5e5ea;border-radius:2px;margin-top:6px;overflow:hidden}
+.progress-fill{height:100%;background:#1a1a1a;width:0;transition:width .25s}
+.q{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.qnum{font-size:12px;font-weight:700;color:#888;letter-spacing:.5px;margin-bottom:6px}
+.qtype{display:inline-block;background:#eef;color:#446;font-size:11px;padding:2px 8px;border-radius:6px;margin-left:6px;font-weight:600}
+.qprompt{font-size:15px;font-weight:600;margin-bottom:10px;line-height:1.45}
+.qsub{font-size:13px;color:#444;margin-bottom:12px;line-height:1.55;background:#f9f9fb;padding:10px 12px;border-radius:8px;border-left:3px solid #ccc;white-space:pre-wrap}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{padding:12px 14px;background:#f5f5f7;border:2px solid transparent;border-radius:10px;font-size:14px;line-height:1.45;cursor:pointer;transition:all .15s;text-align:left;color:#1a1a1a}
+.opt:active{transform:scale(.98)}
+.opt.sel{background:#e8eaff;color:#1a1a1a;border-color:#5a6bff;font-weight:600}
+.opt.correct{background:#d4f4dd;border-color:#2d8b3e;color:#1a3a22}
+.opt.wrong{background:#fde0e0;border-color:#c33;color:#5a1818}
+.opt.disabled{cursor:default}
+.submit-btn{margin-top:12px;width:100%;padding:14px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+.submit-btn:disabled{background:#ccc;cursor:not-allowed}
+.submit-btn:active:not(:disabled){transform:scale(.98)}
+.fb{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5;display:none}
+.fb.show{display:block}
+.fb.ok{background:#e8f7ec;color:#1a3a22}
+.fb.no{background:#fdecec;color:#5a1818}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5ea;padding:12px 14px env(safe-area-inset-bottom);display:flex;gap:8px;justify-content:space-between;align-items:center}
+.bottom .score{font-size:14px;font-weight:600}
+.bottom button{padding:10px 18px;font-size:14px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-weight:600}
+.result{background:#1a1a1a;color:#fff;padding:24px;border-radius:14px;text-align:center;margin-top:14px;display:none}
+.result.show{display:block}
+.result h2{margin:0 0 8px;font-size:22px;font-weight:700}
+.result .student-name{font-size:14px;opacity:.7;margin:0 0 4px;letter-spacing:.5px}
+.result .timestamp{font-size:11px;opacity:.5;margin:8px 0 0}
+.result p{margin:4px 0;font-size:14px;opacity:.85}
+.result .big{font-size:48px;font-weight:800;margin:10px 0;letter-spacing:-1px}
+.result .pct{font-size:16px;opacity:.7;margin:0 0 16px}
+.result .breakdown{background:rgba(255,255,255,.08);border-radius:10px;padding:12px;margin:14px 0;text-align:left}
+.result .breakdown-title{font-size:12px;opacity:.6;margin:0 0 10px;letter-spacing:.5px;text-align:center}
+.result .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.result .cell{background:rgba(255,255,255,.1);border-radius:6px;padding:6px 0;font-size:11px;text-align:center;font-weight:600}
+.result .cell.ok{background:rgba(76,217,100,.3);color:#aef}
+.result .cell.no{background:rgba(255,99,99,.3);color:#fcc}
+.result .cell .num{display:block;font-size:10px;opacity:.7;font-weight:400;margin-bottom:2px}
+.result .capture-notice{background:#fff;color:#1a1a1a;border-radius:10px;padding:14px;margin:16px 0 4px;font-size:13px;font-weight:600;line-height:1.5}
+.result .capture-notice .icon{font-size:20px;display:block;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="main">
+  <div class="head">
+    <h1>권유진 드릴 검수 퀴즈</h1>
+    <p>단어 함정·비판/주장·인과 사슬 검수 · 20문항</p>
+  </div>
+
+  <div class="progress">
+    <div class="progress-inner">
+      <span id="pgText">0 / 20</span>
+      <span id="scoreText">정답 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="pgFill"></div></div>
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="result" id="result">
+    <p class="student-name">권유진</p>
+    <h2>드릴 검수 퀴즈 완료</h2>
+    <div class="big" id="finalScore">0 / 20</div>
+    <p class="pct" id="finalPct">0%</p>
+    <p id="finalMsg"></p>
+    <div class="breakdown">
+      <p class="breakdown-title">문항별 결과</p>
+      <div class="grid" id="breakdownGrid"></div>
+    </div>
+    <div class="capture-notice">
+      <span class="icon">📸</span>
+      이 화면을 캡쳐해서<br>선생님께 보내주세요
+    </div>
+    <p class="timestamp" id="timestamp"></p>
+  </div>
+</div>
+
+<div class="bottom" id="bottom">
+  <div class="score" id="bScore">0 / 20</div>
+  <button type="button" onclick="scrollNext()" id="nextBtn">다음 문항 ↓</button>
+</div>
+
+<script>
+const QUIZ = [
+  {
+    "n": 1,
+    "type": "빈칸·단어함정",
+    "orig": "드릴 1번",
+    "prompt": "드릴 1번 빈칸 — 정답 ③(retrospective rationalization)이 ① ‘aspiration toward improvement’ 함정이 아닌 결정적 이유는?",
+    "opts": [
+      "본문에 ‘improvement’가 직접 나오므로 ①이 정답이다",
+      "본문 흐름상 도덕 추론이 행동 ‘이후’ 정당화로 작동 — ‘function less as a guide to action than as ___ that follows action already taken’이 사후성을 직접 결정",
+      "심리학에서 aspiration은 항상 합리화와 같은 의미",
+      "①과 ③은 의미가 거의 같다"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 2,
+    "type": "빈칸·단어함정",
+    "orig": "드릴 3번",
+    "prompt": "드릴 3번 빈칸 — 정답 ③의 핵심은 기술이 ‘방향성 압력’을 가한다는 것. 이를 단정적으로 부정하는 ① ‘individuals retain full control’이 함정이 되는 이유는?",
+    "opts": [
+      "본문 ‘shape the field of available choices in ways their users rarely recognize’가 사용자의 통제가 ‘제한된다’는 것을 직접 명시",
+      "‘individuals’라는 단어가 본문에 등장하지 않아서",
+      "①은 본문 시작부의 통념과 정확히 일치한다",
+      "①이 더 길어서"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 3,
+    "type": "빈칸·인과사슬",
+    "orig": "드릴 5번",
+    "prompt": "드릴 5번 빈칸 — 정답 ③(institutional infrastructure of knowledge transmission)의 인과 사슬에서 마지막 단어 방향은?",
+    "opts": [
+      "개인 합리성 → 모든 답을 책임짐",
+      "사회 통념 → 사실 결정 → 개인이 자유롭게 검증",
+      "권위 채널 → 사실 인정 → 다른 권위 채널 → 순환 구조 → 제도가 무너지면 거짓도 같은 신뢰로 전달 → 개인 합리성보다 ‘제도 인프라’가 결정",
+      "기술 도구 → 정보 분배 → 결국 개인이 결정"
+    ],
+    "ans": 2
+  },
+  {
+    "n": 4,
+    "type": "빈칸·단어함정",
+    "orig": "드릴 9번",
+    "prompt": "드릴 9번 빈칸 — 정답 ②(dissolution of shared evidentiary horizon)이 ④(declining trust in scientific authorities) 함정이 아닌 이유는?",
+    "opts": [
+      "본문이 ‘scientific authorities’를 직접 언급하므로 ④가 더 가깝다",
+      "본문 핵심은 ‘citizens inhabit information ecosystems whose factual claims diverge so completely’ — 권위 ‘신뢰’가 아니라 공유된 ‘증거 지평’ 자체의 해체",
+      "②와 ④는 본질적으로 같다",
+      "④가 더 구체적이라 정답이다"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 5,
+    "type": "빈칸·비판대상",
+    "orig": "드릴 10번",
+    "prompt": "드릴 10번 빈칸 — 정답 ③(popular preference for measurable outcomes)의 ‘비판 대상’과 ‘주장’ 구분에서 핵심 신호 문장은?",
+    "opts": [
+      "‘The official curriculum emphasizes deep understanding’ — 통념 그대로",
+      "‘Reformers who imagine that better tests or stronger standards will address this problem misread its source’ — 강한 비판 신호. 그 이후가 진짜 원인",
+      "‘Students who succeed within this system learn’ — 사실 묘사",
+      "‘The talents thereby developed are real but narrow’ — 부수 묘사"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 6,
+    "type": "빈칸·인과사슬",
+    "orig": "드릴 11번",
+    "prompt": "드릴 11번 빈칸 — 정답 ②(maintained robust non-market institutions)의 인과 사슬 끝 방향은?",
+    "opts": [
+      "성공한 자본주의 = 가장 순수한 시장 → 정부 개입 최소화 → 그래서 ‘minimized government intervention’",
+      "성공한 자본주의 = 비시장 사회 투자에 의존 → 공공 연구·규제·노동 안전망 → 그래서 ‘robust non-market institutions’를 유지",
+      "성공한 자본주의 = 식민지 확장 → 모순 수출",
+      "성공한 자본주의 = 소수 기업 집중"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 7,
+    "type": "빈칸·단어함정",
+    "orig": "드릴 14번",
+    "prompt": "드릴 14번 빈칸 — 정답 ③(coordinated system whose effects exceed individual control)이 ② ‘personal weakness that requires individual character development’ 함정이 아닌 이유는?",
+    "opts": [
+      "‘personal’이라는 단어가 본문에 나오므로 ②가 정답이다",
+      "본문 ‘We are not facing a personal failure of focus that better habits could address’ — 개인 약점 해석을 명시적으로 부정",
+      "②는 본문 통념과 같다",
+      "②와 ③은 표현만 다를 뿐 같은 의미"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 8,
+    "type": "빈칸·인과사슬",
+    "orig": "드릴 15번",
+    "prompt": "드릴 15번 빈칸 — 정답 ②(ongoing negotiation between abstract reasoning and embodied practice)의 인과 흐름 끝 방향은?",
+    "opts": [
+      "합리주의 우세 → 보편 원리 승리 → ① ‘complete victory of universal principles’",
+      "합리주의·특수주의 양쪽 다 한계 → 양쪽 요소가 ‘생산적 긴장’ 속에 작동 → ‘negotiation between’",
+      "둘 다 거부 → 도덕 무관심",
+      "전근대 권위 회귀"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 9,
+    "type": "순서·역접신호",
+    "orig": "드릴 18번 (정답 ③)",
+    "prompt": "드릴 18번 순서 — 정답 ③ (A)-(B)-(C)에서 (A)의 ‘however’가 받는 대상은?",
+    "opts": [
+      "(B)의 ‘layered character’",
+      "주어진 글의 ‘metals/productive capacity/state demand’ 단일 후보들",
+      "(C)의 ‘interlocking system’",
+      "(B)의 ‘Contemporary monetary theorists’"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 10,
+    "type": "순서·역접신호",
+    "orig": "드릴 19번 (정답 ④)",
+    "prompt": "드릴 19번 순서 — 정답 ④ (A)-(B)-(C)에서 (A)의 ‘Yet sociological investigation’이 받는 대상은?",
+    "opts": [
+      "(B)의 ‘social construction’",
+      "주어진 글의 ‘이상화된 합의 형성 그림’",
+      "(C)의 ‘honest description’",
+      "(B)의 ‘natural world’"
+    ],
+    "ans": 1
+  },
+  {
+    "n": 11,
+    "type": "순서·인과사슬",
+    "orig": "드릴 21번 (정답 ②)",
+    "prompt": "드릴 21번 순서 — 정답 ② (A)-(B)-(C)에서 인과 사슬은?",
+    "opts": [
+      "(A) 메커니즘 = 사회 신호 → (B) 한번 자리 잡으면 안정 → (C) 외부 충격으로 무너짐",
+      "(B) 안정 → (A) 메커니즘 → (C) 무너짐",
+      "(C) 무너짐 → (A) 메커니즘 → (B) 안정",
+      "주어진 글 → (C) → (A) → (B)"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 12,
+    "type": "순서·역접신호",
+    "orig": "드릴 22번 (정답 ②)",
+    "prompt": "드릴 22번 순서 — 정답 ② (B)-(A)-(C)에서 (B)가 처음에 오는 결정 단서는?",
+    "opts": [
+      "(B)의 ‘Some traditions ... Others ...’가 주어진 글 ‘different traditions have proposed quite different accounts’를 직접 받음",
+      "(A)의 ‘These competing answers continue to operate’가 (B)의 두 전통을 받음",
+      "(C)의 ‘Recognition of this underlying disagreement’가 결론",
+      "위 모두"
+    ],
+    "ans": 3
+  },
+  {
+    "n": 13,
+    "type": "삽입·역접신호",
+    "orig": "드릴 29번 (정답 ②)",
+    "prompt": "드릴 29번 삽입 — ‘Yet this assumption proves untenable’이 ②에 들어가는 단서는?",
+    "opts": [
+      "① 이전 ‘informed deliberation drives outcomes’ 통념 → ② 자리 Yet 반전 → ② 이후 ‘Major transitions ... small adjustments’",
+      "③ 이후 ‘Participants did not recognize’가 직접 받음",
+      "④ 이후 시간 신호",
+      "⑤의 결론"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 14,
+    "type": "삽입·인과사슬",
+    "orig": "드릴 31번 (정답 ③)",
+    "prompt": "드릴 31번 삽입 — ‘These mechanisms, however, do not exhaust the conditions’의 ‘These mechanisms’가 가리키는 대상은?",
+    "opts": [
+      "①의 ‘direct exposure’ 하나만",
+      "②의 ‘explicit instruction’ 하나만",
+      "①·②에 제시된 두 메커니즘 (직접 노출 + 명시적 교육)",
+      "④ 이후의 ‘social attentiveness’"
+    ],
+    "ans": 2
+  },
+  {
+    "n": 15,
+    "type": "삽입·역접신호",
+    "orig": "드릴 32번 (정답 ②)",
+    "prompt": "드릴 32번 삽입 — ‘The actual record of how such reforms have proceeded, however, suggests a more complicated story’가 ②에 들어가는 단서는?",
+    "opts": [
+      "① 이전 ‘incremental adjustments preserve structural features ... wholesale reconstruction permits new arrangements’ 통념 → ② 자리 however 반전 → ② 이후 ‘Most successful institutional reforms ... proceeded incrementally’",
+      "③ 이후 ‘Wholesale reconstructions, when attempted, frequently fail’이 직접 받음",
+      "④ 이후 ‘reasons for this pattern’이 결론",
+      "⑤의 ‘Recognition of this pattern’"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 16,
+    "type": "삽입·비판신호",
+    "orig": "드릴 34번 (정답 ③)",
+    "prompt": "드릴 34번 삽입 — ‘Yet a closer examination reveals that the choice presented is itself misframed’가 ③에 들어가는 단서는?",
+    "opts": [
+      "①·② 두 입장(정부 축소 vs 확장) 제시 → ③ 자리에서 Yet 반전 ‘선택지 자체가 잘못 짜였다’ → ③ 이후 ‘government consists of many different functions’ 구체화",
+      "④ 이후 ‘Some governmental functions deserve expansion’이 직접 받음",
+      "⑤ 결론",
+      "① 이전이 정답"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 17,
+    "type": "삽입·인과사슬",
+    "orig": "드릴 35번 (정답 ②)",
+    "prompt": "드릴 35번 삽입 — ‘Yet this picture, however attractive, fails to account for several features’가 ②에 들어가는 단서는?",
+    "opts": [
+      "① 이전 ‘individual talent and persistence가 경력 결정’ 통념 → ② 자리 Yet 반전 → ② 이후 ‘trajectories ... depend extensively on factors beyond personal merit’",
+      "③ 이후 ‘Equally talented and persistent researchers’가 직접 받음",
+      "④ 결론",
+      "⑤의 ‘Honest evaluation of careers’"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 18,
+    "type": "삽입·인과사슬",
+    "orig": "드릴 36번 (정답 ④)",
+    "prompt": "드릴 36번 삽입 — ‘These observations have begun to reshape how thoughtful clinicians approach the situation’의 ‘These observations’가 가리키는 인과 사슬은?",
+    "opts": [
+      "① 환자 말과 행동 사이 간극 → ② 간극은 진짜 복잡성 → ③ 단순히 명시적 목표만 추구하는 치료는 불안정 → ④ 자리에서 ‘These observations’ 받음",
+      "①의 첫 문장 하나만",
+      "②의 ‘bad faith’ 부정 부분만",
+      "⑤ 이후의 결론"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 19,
+    "type": "삽입·비판신호",
+    "orig": "드릴 37번 (정답 ③)",
+    "prompt": "드릴 37번 삽입 — ‘Yet this account, persuasive as it initially appears, leaves something crucial unexplained’이 ③에 들어가는 단서는?",
+    "opts": [
+      "①·② 감상주의의 매력 = 도덕 경험의 진짜 특징 포착 → ③ 자리에서 Yet 반전 → ③ 이후 ‘sentimentalist account ... cannot explain how we revise our emotional responses’ 한계",
+      "④ 이후 ‘The phenomenon of reasoned revision’이 직접 받음",
+      "⑤ 결론",
+      "①에 들어가야 함"
+    ],
+    "ans": 0
+  },
+  {
+    "n": 20,
+    "type": "삽입·역접신호",
+    "orig": "드릴 40번 (정답 ③)",
+    "prompt": "드릴 40번 삽입 — ‘Yet the very conditions that produce this productivity may also generate vulnerabilities’가 ③에 들어가는 인과 사슬은?",
+    "opts": [
+      "①·② 네트워크 조직 효율성 = 모든 부문 → ③ 자리에서 Yet 반전 → ③ 이후 ‘Networks ... vulnerable to disruptions’ + ④ ‘cascading failures’ 구체적 취약성",
+      "④ 이후 ‘cascading failures’가 직접 받음",
+      "⑤ 결론",
+      "① 이전"
+    ],
+    "ans": 0
+  }
+];
+const STORAGE_KEY = 'kyj_drill_v1';
+
+let answered=0, score=0, answers={};
+
+function render(){
+  const root=document.getElementById('quiz');
+  root.innerHTML='';
+  QUIZ.forEach((q,i)=>{
+    const div=document.createElement('div');
+    div.className='q';
+    div.id='q'+i;
+    div.innerHTML=`
+      <div class="qnum">Q${q.n} <span class="qtype">${q.type}</span></div>
+      <div class="qprompt">${q.prompt}</div>
+      <div class="qsub">원본: ${q.orig}</div>
+      <div class="opts">
+        ${q.opts.map((o,j)=>`<button type="button" class="opt" data-i="${i}" data-j="${j}">${String.fromCharCode(65+j)}. ${o}</button>`).join('')}
+      </div>
+      <button type="button" class="submit-btn" id="sb${i}" data-i="${i}" disabled>제출</button>
+      <div class="fb" id="fb${i}"></div>
+    `;
+    root.appendChild(div);
+  });
+  root.querySelectorAll('.opt').forEach(b=>{
+    ['click','touchend'].forEach(ev=>b.addEventListener(ev,function(e){
+      if(ev==='touchend')e.preventDefault();
+      selectOpt.call(b,{target:b});
+    },{passive:false}));
+  });
+  root.querySelectorAll('.submit-btn').forEach(b=>{
+    ['click','touchend'].forEach(ev=>b.addEventListener(ev,function(e){
+      if(ev==='touchend')e.preventDefault();
+      submitAnswer.call(b,{target:b});
+    },{passive:false}));
+  });
+  updateProgress();
+}
+
+function selectOpt(e){
+  const tgt=e.target;
+  const i=+tgt.dataset.i, j=+tgt.dataset.j;
+  const block=document.getElementById('q'+i);
+  if(block.dataset.done)return;
+  block.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  tgt.classList.add('sel');
+  block.dataset.selected=j;
+  document.getElementById('sb'+i).disabled=false;
+}
+
+function submitAnswer(e){
+  const tgt=e.target;
+  const i=+tgt.dataset.i;
+  const block=document.getElementById('q'+i);
+  if(block.dataset.done)return;
+  if(block.dataset.selected===undefined)return;
+  const j=+block.dataset.selected;
+  const q=QUIZ[i];
+  block.dataset.done='1';
+  const opts=block.querySelectorAll('.opt');
+  opts.forEach((o,k)=>{
+    o.classList.add('disabled');
+    o.classList.remove('sel');
+    if(k===q.ans)o.classList.add('correct');
+    if(k===j&&j!==q.ans)o.classList.add('wrong');
+  });
+  tgt.style.display='none';
+  const fb=document.getElementById('fb'+i);
+  const isCorrect=(j===q.ans);
+  answers[q.n]=isCorrect;
+  if(isCorrect){
+    score++;
+    fb.className='fb show ok';
+    fb.textContent='✓ 정답';
+  } else {
+    fb.className='fb show no';
+    fb.textContent='✗ 정답: '+String.fromCharCode(65+q.ans);
+  }
+  answered++;
+  updateProgress();
+  if(answered===QUIZ.length)showResult();
+}
+
+function updateProgress(){
+  document.getElementById('pgText').textContent=answered+' / '+QUIZ.length;
+  document.getElementById('scoreText').textContent='정답 '+score;
+  document.getElementById('bScore').textContent=score+' / '+QUIZ.length;
+  document.getElementById('pgFill').style.width=(answered/QUIZ.length*100)+'%';
+}
+
+function scrollNext(){
+  for(let i=0;i<QUIZ.length;i++){
+    const b=document.getElementById('q'+i);
+    if(!b.dataset.done){
+      b.scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+  }
+}
+
+function getMsg(pct){
+  if(pct>=90) return '완벽! 정답 근거를 정확히 짚었습니다.';
+  if(pct>=70) return '괜찮음. 틀린 문항은 본문 단서를 다시 확인하세요.';
+  if(pct>=50) return '보강 필요. 정답을 우연히 맞췄을 가능성 있음.';
+  return '재학습 필요. 본문 근거 추적 훈련부터 다시.';
+}
+
+function fmtTime(ts){
+  const d=new Date(ts);
+  const yy=d.getFullYear();
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mi=String(d.getMinutes()).padStart(2,'0');
+  return `${yy}.${mm}.${dd} ${hh}:${mi}`;
+}
+
+function renderBreakdown(answersData){
+  const grid=document.getElementById('breakdownGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  for(let i=0;i<QUIZ.length;i++){
+    const qNum=QUIZ[i].n;
+    const ok=answersData[qNum];
+    const cell=document.createElement('div');
+    cell.className='cell '+(ok?'ok':'no');
+    cell.innerHTML=`<span class="num">Q${qNum}</span>${ok?'○':'✕'}`;
+    grid.appendChild(cell);
+  }
+}
+
+function showResult(){
+  const ts=Date.now();
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({score,total:QUIZ.length,done:true,ts,answers}));
+  }catch(e){}
+  const r=document.getElementById('result');
+  r.classList.add('show');
+  document.getElementById('finalScore').textContent=score+' / '+QUIZ.length;
+  const pct=Math.round(score/QUIZ.length*100);
+  document.getElementById('finalPct').textContent=pct+'%';
+  document.getElementById('finalMsg').textContent=getMsg(pct);
+  document.getElementById('timestamp').textContent=fmtTime(ts);
+  renderBreakdown(answers);
+  r.scrollIntoView({behavior:'smooth'});
+}
+
+function showLocked(savedData){
+  document.getElementById('quiz').style.display='none';
+  document.getElementById('bottom').style.display='none';
+  const r=document.getElementById('result');
+  r.classList.add('show');
+  document.getElementById('finalScore').textContent=savedData.score+' / '+savedData.total;
+  const pct=Math.round(savedData.score/savedData.total*100);
+  document.getElementById('finalPct').textContent=pct+'%';
+  document.getElementById('finalMsg').textContent=getMsg(pct);
+  if(savedData.ts) document.getElementById('timestamp').textContent=fmtTime(savedData.ts);
+  if(savedData.answers) renderBreakdown(savedData.answers);
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  try{
+    const saved=localStorage.getItem(STORAGE_KEY);
+    if(saved){
+      const data=JSON.parse(saved);
+      if(data&&data.done){showLocked(data);return;}
+    }
+  }catch(e){}
+  render();
+});
+</script>
+</body>
+</html>
