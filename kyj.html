@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>권유진 검수 퀴즈</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:#f5f5f7;color:#1a1a1a;line-height:1.5}
+.gate{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:24px}
+.gate h1{margin:0 0 16px;font-size:20px}
+.gate input{font-size:18px;padding:12px 16px;border:2px solid #ddd;border-radius:10px;width:100%;max-width:280px;text-align:center}
+.gate button{margin-top:12px;padding:12px 28px;font-size:16px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-weight:600}
+.gate .err{color:#d33;font-size:13px;margin-top:8px;min-height:18px}
+.hide{display:none!important}
+.wrap{max-width:720px;margin:0 auto;padding:16px 14px 80px}
+.head{background:#1a1a1a;color:#fff;padding:18px 16px;border-radius:14px;margin-bottom:14px}
+.head h1{margin:0 0 4px;font-size:18px;font-weight:700}
+.head p{margin:0;font-size:13px;opacity:.85}
+.progress{position:sticky;top:0;background:rgba(245,245,247,.95);backdrop-filter:blur(8px);padding:10px 0;margin:-16px -14px 12px;border-bottom:1px solid #e5e5ea;z-index:10}
+.progress-inner{max-width:720px;margin:0 auto;padding:0 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#666}
+.progress-bar{height:4px;background:#e5e5ea;border-radius:2px;margin-top:6px;overflow:hidden}
+.progress-fill{height:100%;background:#1a1a1a;width:0;transition:width .25s}
+.q{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.qnum{font-size:12px;font-weight:700;color:#888;letter-spacing:.5px;margin-bottom:6px}
+.qtype{display:inline-block;background:#eef;color:#446;font-size:11px;padding:2px 8px;border-radius:6px;margin-left:6px;font-weight:600}
+.qprompt{font-size:15px;font-weight:600;margin-bottom:6px;line-height:1.45}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{padding:12px 14px;background:#f5f5f7;border:2px solid transparent;border-radius:10px;font-size:14px;line-height:1.45;cursor:pointer;transition:all .15s;text-align:left;color:#1a1a1a}
+.opt:active{transform:scale(.98)}
+.opt.sel{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.opt.correct{background:#d4f4dd;border-color:#2d8b3e;color:#1a3a22}
+.opt.wrong{background:#fde0e0;border-color:#c33;color:#5a1818}
+.opt.disabled{cursor:default}
+.fb{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5;display:none}
+.fb.show{display:block}
+.fb.ok{background:#e8f7ec;color:#1a3a22}
+.fb.no{background:#fdecec;color:#5a1818}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5ea;padding:12px 14px env(safe-area-inset-bottom);display:flex;gap:8px;justify-content:space-between;align-items:center}
+.bottom .score{font-size:14px;font-weight:600}
+.bottom button{padding:10px 18px;font-size:14px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-weight:600}
+.result{background:#1a1a1a;color:#fff;padding:24px;border-radius:14px;text-align:center;margin-top:14px;display:none}
+.result.show{display:block}
+.result h2{margin:0 0 8px;font-size:24px}
+.result p{margin:4px 0;font-size:14px;opacity:.85}
+.result .big{font-size:42px;font-weight:800;margin:8px 0}
+.reset{margin-top:14px;padding:10px 20px;background:transparent;color:#fff;border:1px solid #fff;border-radius:8px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="main">
+  <div class="head">
+    <h1>권유진 검수 퀴즈</h1>
+    <p>단어 함정·비판/주장·인과 사슬 검수 · 20문항</p>
+  </div>
+
+  <div class="progress">
+    <div class="progress-inner">
+      <span id="pgText">0 / 20</span>
+      <span id="scoreText">정답 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="pgFill"></div></div>
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="result" id="result">
+    <h2>완료!</h2>
+    <div class="big" id="finalScore">0 / 20</div>
+    <p id="finalMsg"></p>
+    <button type="button" class="reset" id="resetBtn">다시 풀기</button>
+  </div>
+</div>
+
+<div class="bottom" id="bottom">
+  <div class="score" id="bScore">0 / 20</div>
+  <button type="button" onclick="scrollNext()" id="nextBtn">다음 문항 ↓</button>
+</div>
+
+<script>
+
+
+const QUIZ = [
+  {n:1, type:'빈칸·단어함정', prompt:'1번 빈칸 — 정답 ②(trustworthiness)의 결정 단서 문장은?',
+   opts:[
+    'A cleaner could, in principle, take a quick bite of healthy tissue from its client.',
+    'Cleaners that "cheat" in this way are visibly punished by the loss of repeat customers.',
+    'Cleaners that resist the temptation gain steadier access to food.',
+    'The exchange looks straightforward, but a closer look reveals something more interesting.'
+   ], ans:2},
+
+  {n:2, type:'빈칸·단어함정', prompt:'2번 빈칸 — 정답 ③(prioritization)이 ①(fairness)이 아닌 이유의 핵심은?',
+   opts:[
+    '본문에 "fair"라는 단어가 등장해서 fairness가 정답이다',
+    '"a brief assessment sorts incoming patients by the severity of their condition"이 자원을 가장 큰 효과가 나는 곳에 배분하는 우선순위 부여',
+    '응급실은 모든 환자를 동등하게 대해야 하므로 fairness가 핵심이다',
+    '환자가 도착한 순서대로 치료하는 것이 prioritization이다'
+   ], ans:1},
+
+  {n:3, type:'빈칸·단어함정', prompt:'3번 빈칸 — 정답 ③(succession)의 결정 단서는?',
+   opts:[
+    '"Hardy species with wind-blown seeds appear first" — 첫 번째 단계가 전부',
+    '"Each generation of plants alters the soil ... in ways that make the next stage possible while making its own continued dominance impossible" — 순차적 자기 대체',
+    '"plants do not return all at once" — 즉, 경쟁(competition)이 핵심',
+    '"slower, shade-loving trees germinate" — 느린 종이 빠른 종을 파괴'
+   ], ans:1},
+
+  {n:4, type:'빈칸·추상일반화', prompt:'4번 빈칸 — 정답 ②(depends on a background of knowledge for whatever immediacy it appears to offer)의 결정 단서는?',
+   opts:[
+    '"the iconography of saints, the conventions of patronage, the theological controversies"',
+    '"What looks like a direct encounter with beauty was, for its original audience, an encounter mediated by a thick web of shared knowledge"',
+    '"contemporary art has become too clever, too dependent on context"',
+    '"the apparent contrast between old and new art is misleading"'
+   ], ans:1},
+
+  {n:5, type:'함축·비유', prompt:'5번 "the cushion that hides the floor" — 이 비유의 직접 재진술 표현은?',
+   opts:[
+    'Workers keep their jobs, suppliers keep their orders.',
+    'The subsidy ... lets the firm postpone the painful adjustments its competitors have already made.',
+    'softening the present at the cost of a much harder landing.',
+    'reports describe a community "saved" by timely intervention.'
+   ], ans:2},
+
+  {n:6, type:'함축·비유', prompt:'6번 "polishing the lens through which one will be misread" — 정답 ①의 결정 단서 문장은?',
+   opts:[
+    'Writers often imagine that careful revision will make their work harder to misunderstand.',
+    'A rougher draft signals its own uncertainty and invites the reader to slow down and ask.',
+    'A highly polished text invites readers to assume that whatever they take from it must be exactly what the writer intended.',
+    'Misunderstandings, when they occur, are held with greater confidence.'
+   ], ans:3},
+
+  {n:7, type:'함축·비유', prompt:'7번 "the bridge built halfway across the river" — 정답 ②의 직접 재진술 문장은?',
+   opts:[
+    'A new transit line is approved, ground is broken.',
+    'A change of administration, a budget shortfall, or a shift in political will halts construction.',
+    'useless where it stands, expensive to abandon, and most expensive of all to leave exactly as it is.',
+    'a monument to wasted ambition'
+   ], ans:2},
+
+  {n:8, type:'주제·비판대상', prompt:'8번 — 정답 ②(absurdity of viewing a consumer as separable from the social world)의 결정 신호는?',
+   opts:[
+    '"The standard model of consumer behavior treats people as calculating individuals" — 통념 진술이 곧 주장',
+    '"This is evidently nonsense" — 강한 비판 신호 직후가 주장',
+    '"Society becomes a backdrop against which atomized agents pursue private ends" — 통념의 정당화',
+    '"the consumer is a prisoner of personal taste" — 주장 명제'
+   ], ans:1},
+
+  {n:9, type:'요지·비판대상', prompt:'9번 — 필자의 요지(② 사실 축적이 아니라 끊임없는 수정으로 발전)의 결정 단서는?',
+   opts:[
+    '"each experiment adds another stable brick" — 통념 그대로',
+    '"mature fields advance less by quietly piling up confirmations than by repeatedly discovering that earlier bricks were less solid"',
+    '"the support was real, the inferences from it were careful" — 19세기 물리학 옹호',
+    '"science cannot be trusted" — 회의주의 결론'
+   ], ans:1},
+
+  {n:10, type:'무관문장', prompt:'10번 — 무관 문장 ④(병원 카페테리아 리모델링)가 무관인 이유는?',
+   opts:[
+    '병원이라는 단어가 본문에 없어서',
+    '항생제 내성 → 처방 통제 인과 흐름과 관련 없음',
+    '병원의 식사 메뉴 다양성은 의학적 주제가 아님',
+    '문장이 너무 길고 복잡해서'
+   ], ans:1},
+
+  {n:11, type:'무관문장', prompt:'11번 — 무관 문장 ④(낚시 대회 인기 증가)가 무관인 이유는?',
+   opts:[
+    '강(river)이라는 표면 단어는 같지만 "강 직선화 → 연쇄적 부정 결과" 인과 흐름과 끊김',
+    '낚시 대회는 강과 무관한 주제임',
+    '20년이라는 시간 표현이 본문 시제와 맞지 않음',
+    '경쟁(competition)이 본문 주제가 아님'
+   ], ans:0},
+
+  {n:12, type:'순서·지시구', prompt:'12번 순서 (A)-(B)-(C) — (C)가 마지막에 오는 결정 단서는?',
+   opts:[
+    '(C)의 "To do this"가 (B)의 "task"(위협 판단)를 받음',
+    '(C)의 "novel substances"가 가장 일반적인 표현이라 마지막',
+    '(C)의 "self/non-self rules"가 처음 등장하는 개념이라 마지막',
+    '(C)의 "layered set of signals"가 (A)와 직접 모순'
+   ], ans:0},
+
+  {n:13, type:'순서·지시구', prompt:'13번 순서 (A)-(B)-(C) — (C)의 "To do this"가 받는 대상은?',
+   opts:[
+    '(A)의 "predict the exact path of the conversation"',
+    '(B)의 "interpret what is likely to satisfy concerns the other party may not even have stated"',
+    '주어진 글의 "skilled negotiators"',
+    '(A)의 "memorized plan"'
+   ], ans:1},
+
+  {n:14, type:'삽입·비유연결', prompt:'14번 — 주어진 문장(channels-synapses 비유)이 ②에 들어가는 단서는?',
+   opts:[
+    '② 이전의 "picture a flat field with rain"이 비유 도입 → 주어진 문장이 비유의 뇌 적용을 추가 → ② 이후 "At first the water spreads ... grooves cut deeper" 비유 본격 전개',
+    '③ 이후 "This is what happens in the brain"이 주어진 문장을 직접 받음',
+    '⑤의 "neurons that fire together"가 비유의 결론',
+    '①에 들어가야 비유가 처음부터 작동함'
+   ], ans:0},
+
+  {n:15, type:'삽입·지시어', prompt:'15번 — 주어진 문장 "Yet this comforting account leaves out a feature"가 ③에 들어가는 단서는?',
+   opts:[
+    '② 이전 "preserves a clean division of labor"의 통념 → ③ 자리에서 Yet 반전 → ③ 이후 "Most consequential questions ... uncertainty" 비판',
+    '④ 이후의 "experts cannot hand over a single finding"이 직접 받음',
+    '⑤의 "Pretending otherwise"가 주어진 문장과 동일',
+    '①에 들어가야 통념이 처음부터 부정됨'
+   ], ans:0},
+
+  {n:16, type:'삽입·비유연결', prompt:'16번 — 주어진 문장(soil-environment 비유)이 ③에 들어가는 단서는?',
+   opts:[
+    '② 이전 "early sign of unusual ability"가 비유의 토양에 해당',
+    '② 이후 "early talent on its own is a poor predictor" → ③ 자리에 비유 삽입 → ③ 이후 "the surrounding ground"가 비유의 토양을 직접 받음',
+    '④ 이후 "Without that scaffolding"이 비유를 받음',
+    '①에 들어가야 비유가 처음부터 작동함'
+   ], ans:1},
+
+  {n:17, type:'어휘', prompt:'17번 어휘 — ③(less)이 부적절한 이유의 인과 흐름은?',
+   opts:[
+    '사냥 → 칼로리 소비 → 회복을 위해 즉각적 필요보다 LESS 먹어야 함',
+    '사냥 → 칼로리 소비 → 회복을 위해 즉각적 필요보다 MORE 먹어야 함 → 위장의 한계를 넘어 칼로리 밀도 높은 음식 갈망',
+    '사냥 → 칼로리 소비 → 즉각적 필요와 동일하게 먹어야 함',
+    'less는 본문에 등장하므로 적절함'
+   ], ans:1},
+
+  {n:18, type:'어휘', prompt:'18번 어휘 — ④(strengthen)가 부적절한 이유의 인과 흐름은?',
+   opts:[
+    '공실 → 매출 감소 → 임대료 하락 → 더 나쁜 용도(할인점·고리대·공터 주차장) → 지역 매력 STRENGTHEN(강화)',
+    '공실 → 매출 감소 → 임대료 하락 → 더 나쁜 용도(할인점·고리대·공터 주차장) → 지역 매력 WEAKEN(약화)',
+    'strengthen이 본문 흐름과 일치함',
+    '도시 재생의 결과 strengthen이 자연스러움'
+   ], ans:1},
+
+  {n:19, type:'장문·제목', prompt:'19번 제목 — 정답 ③(When Removing a Constraint Quietly Removes the Wisdom It Sustained)의 결정 단서는?',
+   opts:[
+    '"colonial engineers arrived in the nineteenth century and installed pressurized pipes"',
+    '"The pipes did not destroy the culture by force; they made it unnecessary, and what is unnecessary is not, in any society, long preserved."',
+    '"the islanders are rediscovering, painfully and from books, the rules"',
+    '"a few seasonal streams and the rain caught in carved stone basins"'
+   ], ans:1},
+
+  {n:20, type:'장문·어휘', prompt:'20번 어휘 — ⑤(encourage)가 부적절한 이유의 인과 흐름은?',
+   opts:[
+    '공개 활동 → 명성 상승 → 연구 시간 감소 → 연구의 질 약화 → 잘하지 못하는 일로 알려짐 → 선임의 가장 유용한 조언은 추가 노출 ENCOURAGE',
+    '공개 활동 → 명성 상승 → 연구 시간 감소 → 연구의 질 약화 → 잘하지 못하는 일로 알려짐 → 선임의 가장 유용한 조언은 추가 노출 DISCOURAGE/WARN AGAINST',
+    'encourage가 본문 전체의 비판적 흐름과 일치함',
+    '신진 연구자에게는 항상 격려가 필요하므로 encourage가 적절'
+   ], ans:1}
+];
+
+// resetBtn 리스너
+window.addEventListener('DOMContentLoaded',function(){
+  // 잠금 체크
+  try {
+    const saved = localStorage.getItem('kyj_check_v1');
+    if(saved){
+      const data = JSON.parse(saved);
+      if(data && data.done){
+        showLocked(data);
+        return;
+      }
+    }
+  } catch(e) {}
+  
+  const _resetBtn=document.getElementById('resetBtn');
+  if(_resetBtn){
+    ['click','touchend'].forEach(ev=>_resetBtn.addEventListener(ev,function(e){
+      if(ev==='touchend')e.preventDefault();
+      resetAll();
+    },{passive:false}));
+  }
+  render();
+});
+
+let answered=0, score=0;
+
+function render(){
+  const root=document.getElementById('quiz');
+  root.innerHTML='';
+  QUIZ.forEach((q,i)=>{
+    const div=document.createElement('div');
+    div.className='q';
+    div.id='q'+i;
+    div.innerHTML=`
+      <div class="qnum">Q${q.n} <span class="qtype">${q.type}</span></div>
+      <div class="qprompt">${q.prompt}</div>
+      <div class="opts">
+        ${q.opts.map((o,j)=>`<button type="button" class="opt" data-i="${i}" data-j="${j}">${String.fromCharCode(65+j)}. ${o}</button>`).join('')}
+      </div>
+      <div class="fb" id="fb${i}"></div>
+    `;
+    root.appendChild(div);
+  });
+  root.querySelectorAll('.opt').forEach(b=>{
+    ['click','touchend'].forEach(ev=>b.addEventListener(ev,function(e){
+      if(ev==='touchend')e.preventDefault();
+      pick.call(b,{target:b});
+    },{passive:false}));
+  });
+  updateProgress();
+}
+
+function pick(e){
+  const tgt = e.target;
+  const i=+tgt.dataset.i, j=+tgt.dataset.j;
+  const q=QUIZ[i];
+  const block=document.getElementById('q'+i);
+  if(block.dataset.done)return;
+  block.dataset.done='1';
+  const opts=block.querySelectorAll('.opt');
+  opts.forEach((o,k)=>{
+    o.classList.add('disabled');
+    if(k===q.ans)o.classList.add('correct');
+    if(k===j&&j!==q.ans)o.classList.add('wrong');
+  });
+  const fb=document.getElementById('fb'+i);
+  if(j===q.ans){
+    score++;
+    fb.className='fb show ok';
+    fb.textContent='✓ 정답';
+  } else {
+    fb.className='fb show no';
+    fb.textContent='✗ 정답: '+String.fromCharCode(65+q.ans);
+  }
+  answered++;
+  updateProgress();
+  if(answered===QUIZ.length)showResult();
+}
+
+function updateProgress(){
+  document.getElementById('pgText').textContent=answered+' / '+QUIZ.length;
+  document.getElementById('scoreText').textContent='정답 '+score;
+  document.getElementById('bScore').textContent=score+' / '+QUIZ.length;
+  document.getElementById('pgFill').style.width=(answered/QUIZ.length*100)+'%';
+}
+
+function scrollNext(){
+  for(let i=0;i<QUIZ.length;i++){
+    const b=document.getElementById('q'+i);
+    if(!b.dataset.done){
+      b.scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+  }
+}
+
+function showResult(){
+  // localStorage에 결과 저장 (잠금)
+  try {
+    localStorage.setItem('kyj_check_v1', JSON.stringify({
+      score: score,
+      total: QUIZ.length,
+      done: true,
+      ts: Date.now()
+    }));
+  } catch(e) {}
+  
+  const r=document.getElementById('result');
+  r.classList.add('show');
+  document.getElementById('finalScore').textContent=score+' / '+QUIZ.length;
+  const pct=score/QUIZ.length*100;
+  let msg='';
+  if(pct>=90)msg='완벽! 정답 근거를 정확히 짚었습니다.';
+  else if(pct>=70)msg='괜찮음. 틀린 문항은 본문 단서를 다시 확인하세요.';
+  else if(pct>=50)msg='보강 필요. 정답을 우연히 맞췄을 가능성 있음.';
+  else msg='재학습 필요. 본문 근거 추적 훈련부터 다시.';
+  document.getElementById('finalMsg').textContent=msg;
+  r.scrollIntoView({behavior:'smooth'});
+}
+
+// 잠금 화면 표시 함수
+function showLocked(savedData){
+  document.getElementById('quiz').style.display='none';
+  document.getElementById('bottom').style.display='none';
+  const r=document.getElementById('result');
+  r.classList.add('show');
+  document.getElementById('finalScore').textContent=savedData.score+' / '+savedData.total;
+  const pct=savedData.score/savedData.total*100;
+  let msg='';
+  if(pct>=90)msg='완벽! 정답 근거를 정확히 짚었습니다.';
+  else if(pct>=70)msg='괜찮음. 틀린 문항은 본문 단서를 다시 확인하세요.';
+  else if(pct>=50)msg='보강 필요. 정답을 우연히 맞췄을 가능성 있음.';
+  else msg='재학습 필요. 본문 근거 추적 훈련부터 다시.';
+  document.getElementById('finalMsg').textContent=msg + ' (이미 완료된 퀴즈)';
+  // 다시 풀기 버튼 숨김
+  const rb=document.getElementById('resetBtn');
+  if(rb) rb.style.display='none';
+}
+
+function resetAll(){
+  answered=0;score=0;
+  document.getElementById('result').classList.remove('show');
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
